@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Research Paper Extractor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            padding: 40px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon {
+            color: #4ecdc4;
+            transform: scale(1.1);
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin: 0 10px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .selected-file {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(78, 205, 196, 0.1);
+            border-radius: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .results-section {
+            padding: 40px;
+            display: none;
+        }
+
+        .paper-title {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 5px solid #4ecdc4;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-content {
+            line-height: 1.8;
+            color: #555;
+            font-size: 1rem;
+            text-align: justify;
+            white-space: pre-wrap;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #c62828;
+        }
+
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #2e7d32;
+        }
+
+        .reset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .reset-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .section-icon {
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .upload-section, .results-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 PDF Research Paper Extractor</h1>
+            <p>Upload your research paper and get organized text extraction</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Drop your PDF research paper here or click to browse</div>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <button class="upload-btn" id="extractBtn" onclick="extractText()" disabled>
+                    Extract Text
+                </button>
+            </div>
+            
+            <div id="selectedFile" class="selected-file" style="display: none;"></div>
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Processing...</div>
+            </div>
+            
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+            <div id="successMessage" class="success-message" style="display: none;"></div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <button class="reset-btn" onclick="resetForm()">← Upload New Paper</button>
+            <div class="paper-title" id="paperTitle"></div>
+            <div id="extractedSections"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                displaySelectedFile();
+            }
+        });
+
+        // Drag and drop handling
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                selectedFile = files[0];
+                document.getElementById('fileInput').files = files;
+                displaySelectedFile();
+            } else {
+                showError('Please drop a valid PDF file.');
+            }
+        });
+
+        function displaySelectedFile() {
+            const selectedFileDiv = document.getElementById('selectedFile');
+            const extractBtn = document.getElementById('extractBtn');
+            
+            if (selectedFile) {
+                selectedFileDiv.innerHTML = `📄 Selected: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`;
+                selectedFileDiv.style.display = 'block';
+                extractBtn.disabled = false;
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function extractText() {
+            if (!selectedFile) {
+                showError('Please select a PDF file first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('pdf', selectedFile);
+
+            showProgress();
+            hideMessages();
+
+            try {
+                const response = await fetch('/extract', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayResults(result.data);
+                    showSuccess('Text extraction completed successfully!');
+                } else {
+                    throw new Error(result.error || 'Extraction failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError(`Failed to extract text: ${error.message}`);
+            } finally {
+                hideProgress();
+            }
+        }
+
+        function displayResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const paperTitle = document.getElementById('paperTitle');
+            const extractedSections = document.getElementById('extractedSections');
+
+            // Set paper title
+            paperTitle.textContent = data.title || selectedFile.name.replace('.pdf', '');
+
+            // Clear previous results
+            extractedSections.innerHTML = '';
+
+            // Section icons mapping
+            const sectionIcons = {
+                'abstract': '📋',
+                'introduction': '🚀',
+                'literature review': '📚',
+                'methodology': '🔬',
+                'method': '🔬',
+                'methods': '🔬',
+                'results': '📊',
+                'discussion': '💭',
+                'conclusion': '🎯',
+                'conclusions': '🎯',
+                'references': '📚',
+                'bibliography': '📚',
+                'acknowledgments': '🙏',
+                'acknowledgements': '🙏',
+                'appendix': '📎',
+                'appendices': '📎'
+            };
+
+            // Display sections
+            if (data.sections && Object.keys(data.sections).length > 0) {
+                Object.entries(data.sections).forEach(([sectionName, content]) => {
+                    if (content && content.trim()) {
+                        const sectionDiv = document.createElement('div');
+                        sectionDiv.className = 'section';
+                        
+                        const iconKey = sectionName.toLowerCase();
+                        const icon = sectionIcons[iconKey] || '📄';
+                        
+                        sectionDiv.innerHTML = `
+                            <div class="section-header">
+                                <span class="section-icon">${icon}</span>
+                                ${sectionName}
+                            </div>
+                            <div class="section-content">${content}</div>
+                        `;
+                        
+                        extractedSections.appendChild(sectionDiv);
+                    }
+                });
+            } else {
+                // Fallback: display raw text if no sections found
+                const fallbackDiv = document.createElement('div');
+                fallbackDiv.className = 'section';
+                fallbackDiv.innerHTML = `
+                    <div class="section-header">
+                        <span class="section-icon">📄</span>
+                        Full Text
+                    </div>
+                    <div class="section-content">${data.raw_text || 'No text could be extracted.'}</div>
+                `;
+                extractedSections.appendChild(fallbackDiv);
+            }
+
+            resultsSection.style.display = 'block';
+            document.querySelector('.upload-section').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        function showProgress() {
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('extractBtn').disabled = true;
+            
+            // Animate progress bar
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressFill.style.width = '100%';
+            progressText.textContent = 'Processing your PDF...';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('extractBtn').disabled = false;
+        }
+
+        function resetForm() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('selectedFile').style.display = 'none';
+            document.getElementById('extractBtn').disabled = true;
+            document.getElementById('resultsSection').style.display = 'none';
+            document.querySelector('.upload-section').style.display = 'block';
+            hideMessages();
+            hideProgress();
+        }
+    </script>
+</body>
+</html>
